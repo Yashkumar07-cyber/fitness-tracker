@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthCore AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Fira+Code:wght@400;500&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020810;--s1:#060d1e;--s2:#0a1428;--s3:#0f1c36;
+  --border:#14223a;--text:#b8cce8;--dim:#4a6080;
+  --accent:#4fd1c5;--aglow:rgba(79,209,197,.15);
+  --warn:#f6ad55;--danger:#fc8181;--good:#68d391;--purple:#b794f4;
+  --ff:'Fira Code',monospace;--fs:'Syne',sans-serif;--fd:'DM Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fd);overflow:hidden;background-image:radial-gradient(rgba(79,209,197,.04) 1px,transparent 1px);background-size:28px 28px}
+
+/* SETUP */
+#setup{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:200;background:var(--bg);transition:opacity .5s,transform .5s}
+#setup.gone{opacity:0;transform:scale(.96);pointer-events:none}
+.sc{width:460px;background:var(--s1);border:1px solid var(--border);border-radius:20px;padding:40px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--purple),var(--accent))}
+.brand{font-family:var(--fs);font-size:28px;letter-spacing:4px;color:var(--accent);margin-bottom:4px}
+.brand-sub{font-family:var(--ff);font-size:10px;color:var(--dim);letter-spacing:1.5px;margin-bottom:32px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg{margin-bottom:16px}
+.lbl{font-family:var(--ff);font-size:9px;color:var(--dim);letter-spacing:2px;margin-bottom:7px;text-transform:uppercase}
+.inp{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--ff);font-size:13px;outline:none}
+.inp:focus{border-color:var(--accent)}
+.begin{width:100%;margin-top:28px;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:10px;font-family:var(--fs);font-size:13px;letter-spacing:3px;cursor:pointer}
+.begin:hover{background:#fff}
+
+/* DASHBOARD */
+#dash{height:100vh;display:grid;grid-template-rows:52px 1fr 64px;grid-template-columns:230px 1fr 240px;opacity:0;transition:opacity .6s}
+#dash.on{opacity:1}
+
+/* HEADER */
+.hdr{grid-column:1/-1;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px}
+.hlogo{font-family:var(--fs);font-size:14px;letter-spacing:4px;color:var(--accent)}
+.hdiv{width:1px;height:16px;background:var(--border)}
+.hmeta{font-family:var(--ff);font-size:10px;color:var(--dim)}
+.hmeta span{color:var(--text)}
+#clock{font-family:var(--ff);font-size:14px;letter-spacing:2px;color:var(--text);margin-left:auto}
+.hled{width:7px;height:7px;border-radius:50%;background:var(--good);margin-left:8px;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#awake-val{font-family:var(--ff);font-size:10px;color:var(--dim);margin-left:10px}
+#awake-val span{color:var(--warn)}
+
+/* LEFT PANEL */
+.lpanel{background:var(--s1);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+.plbl{font-family:var(--ff);font-size:9px;letter-spacing:2px;color:var(--dim);margin-bottom:10px;text-transform:uppercase}
+.hr-gauge-wrap{display:flex;flex-direction:column;align-items:center}
+.gauge-svg{width:150px;height:150px;overflow:visible}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mc{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 11px}
+.mv{font-family:var(--ff);font-size:18px;font-weight:600;color:var(--text);line-height:1;margin-bottom:3px}
+.ml{font-family:var(--ff);font-size:8px;color:var(--dim);letter-spacing:1.5px}
+.mbar{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.mbarfill{height:100%;border-radius:2px;transition:width .5s}
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.act-item{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 9px}
+.act-val{font-family:var(--ff);font-size:15px;font-weight:600;color:var(--text);line-height:1}
+.act-lbl{font-family:var(--ff);font-size:8px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+
+/* CENTER PANEL */
+.cpanel{background:var(--bg);display:flex;flex-direction:column;padding:18px 20px;gap:14px;overflow:hidden}
+.ai-orb-wrap{display:flex;align-items:center;gap:12px}
+.ai-orb{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 35%,var(--accent),rgba(79,209,197,.1));flex-shrink:0;animation:orb-pulse 3s infinite}
+@keyframes orb-pulse{0%,100%{box-shadow:0 0 16px var(--aglow)}50%{box-shadow:0 0 32px var(--aglow)}}
+.ai-orb.warn{background:radial-gradient(circle at 35% 35%,var(--warn),rgba(246,173,85,.1));animation:orb-warn 2s infinite}
+@keyframes orb-warn{0%,100%{box-shadow:0 0 16px rgba(246,173,85,.2)}50%{box-shadow:0 0 32px rgba(246,173,85,.3)}}
+.ai-orb.alert{background:radial-gradient(circle at 35% 35%,var(--danger),rgba(252,129,129,.1));animation:orb-alert 1s infinite}
+@keyframes orb-alert{0%,100%{box-shadow:0 0 16px rgba(252,129,129,.2)}50%{box-shadow:0 0 32px rgba(252,129,129,.3)}}
+.ai-title{font-family:var(--fs);font-size:14px;letter-spacing:2px;color:var(--accent)}
+.ai-title.warn{color:var(--warn)}.ai-title.alert{color:var(--danger)}
+.ai-sub{font-family:var(--ff);font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.ai-ts{font-family:var(--ff);font-size:9px;color:var(--dim);margin-left:auto}
+.ai-msgbox{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px 18px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;min-height:0}
+.ai-headline{font-family:var(--fs);font-size:16px;color:var(--text);letter-spacing:.5px;line-height:1.3}
+.ai-insight{font-family:var(--fd);font-size:13px;color:var(--dim);line-height:1.7;font-weight:300}
+.acard{background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.acard:hover{border-color:var(--accent)}
+.acard-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.acard-text{font-family:var(--fd);font-size:12px;color:var(--text);line-height:1.5;flex:1}
+.acard-badge{font-family:var(--ff);font-size:9px;padding:2px 7px;border-radius:4px;letter-spacing:1px}
+.badge-h{background:rgba(252,129,129,.15);color:var(--danger);border:1px solid rgba(252,129,129,.3)}
+.badge-m{background:rgba(246,173,85,.15);color:var(--warn);border:1px solid rgba(246,173,85,.3)}
+.badge-l{background:rgba(79,209,197,.1);color:var(--accent);border:1px solid rgba(79,209,197,.2)}
+
+/* RIGHT PANEL */
+.rpanel{background:var(--s1);border-left:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.rblock{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.rblock.urgent{border-color:rgba(79,209,197,.5)}
+.rblock.overdue{border-color:rgba(246,173,85,.6)}
+.rblock-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.rblock-title{font-family:var(--ff);font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.big-timer{font-family:var(--ff);font-size:26px;font-weight:600;letter-spacing:2px;line-height:1}
+.timer-sub{font-family:var(--ff);font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:3px}
+.prog-bar{width:100%;height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s}
+.wlog-btn{width:100%;margin-top:9px;padding:8px;background:rgba(79,209,197,.08);border:1px solid rgba(79,209,197,.25);border-radius:7px;color:var(--accent);font-family:var(--ff);font-size:9px;letter-spacing:1.5px;cursor:pointer}
+.wlog-btn:hover{background:rgba(79,209,197,.16)}
+.sleep-time{font-family:var(--ff);font-size:20px;font-weight:600;color:var(--purple);line-height:1;margin-top:2px}
+.sleep-cd{font-family:var(--ff);font-size:9px;color:var(--dim);margin-top:3px;letter-spacing:.5px}
+.wake-pct{font-family:var(--ff);font-size:26px;font-weight:600;line-height:1}
+.wake-sub-lbl{font-family:var(--ff);font-size:8px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.limit-warn{font-family:var(--ff);font-size:9px;color:var(--warn);margin-top:7px;line-height:1.5}
+.sq-bar{display:flex;gap:3px;margin-top:10px}
+.sq-seg{flex:1;height:4px;border-radius:2px;background:var(--border)}
+.wdots{font-family:var(--ff);font-size:10px;color:var(--dim);text-align:center;margin-top:5px;letter-spacing:1px}
+
+/* BOTTOM BAR */
+.bbar{grid-column:1/-1;background:var(--s1);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:10px}
+.qbtn{padding:8px 16px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--dim);font-family:var(--ff);font-size:9px;letter-spacing:1.5px;cursor:pointer}
+.qbtn:hover{border-color:var(--accent);color:var(--accent)}
+.qbtn.primary{background:rgba(79,209,197,.1);border-color:rgba(79,209,197,.35);color:var(--accent)}
+.qbtn.warn-btn{background:rgba(246,173,85,.08);border-color:rgba(246,173,85,.3);color:var(--warn)}
+.last-ai-lbl{font-family:var(--ff);font-size:9px;color:var(--dim);margin-left:auto;letter-spacing:.5px}
+
+/* NOTIFICATIONS */
+#notif{position:fixed;top:62px;right:16px;display:flex;flex-direction:column;gap:7px;z-index:300;pointer-events:none}
+.notif{background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-family:var(--ff);font-size:10px;color:var(--text);letter-spacing:.5px;max-width:260px;animation:notifin .3s ease;pointer-events:all}
+.notif.water{border-color:rgba(79,209,197,.4)}
+.notif.warn-notif{border-color:rgba(246,173,85,.4);color:var(--warn)}
+@keyframes notifin{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <div class="sc">
+    <div class="brand">HEALTHCORE AI</div>
+    <div class="brand-sub">// LOCAL BIOMETRIC HEALTH COMPANION — NO API REQUIRED</div>
+    <div class="r2">
+      <div class="fg"><div class="lbl">Age</div><input class="inp" id="in-age" type="number" value="26" min="15" max="80"></div>
+      <div class="fg"><div class="lbl">Weight (kg)</div><input class="inp" id="in-wt" type="number" value="68" min="40" max="150"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><div class="lbl">Wake-up Time</div><input class="inp" id="in-wake" type="time"></div>
+      <div class="fg"><div class="lbl">Sleep Goal (hrs)</div><input class="inp" id="in-sleep" type="number" value="8" min="5" max="10" step="0.5"></div>
+    </div>
+    <div class="fg"><div class="lbl">Resting Heart Rate (bpm)</div><input class="inp" id="in-rhr" type="number" value="65" min="40" max="100"></div>
+    <button class="begin" id="beginbtn">INITIALIZE HEALTHCORE</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dash">
+  <header class="hdr">
+    <div class="hlogo">HEALTHCORE AI</div>
+    <div class="hdiv"></div>
+    <div class="hmeta">SENSOR: <span>SIMULATED</span></div>
+    <div class="hled"></div>
+    <div id="clock"></div>
+    <div id="awake-val">Awake: <span>0h 0m</span></div>
+  </header>
+
+  <!-- LEFT: VITALS -->
+  <div class="lpanel">
+    <div>
+      <div class="plbl">Heart Rate</div>
+      <div class="hr-gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 150 150">
+          <circle fill="none" stroke="var(--s3)" stroke-width="10" stroke-linecap="round" cx="75" cy="75" r="58" stroke-dasharray="290 370" stroke-dashoffset="-37" transform="rotate(135,75,75)"/>
+          <circle id="gauge-fill" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" cx="75" cy="75" r="58" stroke-dasharray="290 370" stroke-dashoffset="290" transform="rotate(135,75,75)" style="transition:stroke-dashoffset .8s,stroke .4s"/>
+          <text id="gauge-num" x="75" y="70" font-family="'Fira Code',monospace" font-size="32" font-weight="600" fill="var(--accent)" text-anchor="middle" dominant-baseline="middle" style="transition:fill .4s">--</text>
+          <text x="75" y="89" font-family="'Fira Code',monospace" font-size="9" fill="var(--dim)" text-anchor="middle" letter-spacing="2">BPM</text>
+          <text id="gauge-zone" x="75" y="104" font-family="'Fira Code',monospace" font-size="8" fill="var(--dim)" text-anchor="middle" letter-spacing="1">--</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <div class="plbl">Biometrics</div>
+      <div class="mgrid">
+        <div class="mc"><div class="mv" id="v-spo2">98%</div><div class="ml">SpO2</div><div class="mbar"><div class="mbarfill" id="b-spo2" style="width:98%;background:var(--good)"></div></div></div>
+        <div class="mc"><div class="mv" id="v-hrv">45</div><div class="ml">HRV ms</div><div class="mbar"><div class="mbarfill" id="b-hrv" style="width:60%;background:var(--accent)"></div></div></div>
+        <div class="mc"><div class="mv" id="v-stress">24</div><div class="ml">Stress</div><div class="mbar"><div class="mbarfill" id="b-stress" style="width:24%;background:var(--good)"></div></div></div>
+        <div class="mc"><div class="mv" id="v-alert">--</div><div class="ml">Alertness</div><div class="mbar"><div class="mbarfill" id="b-alert" style="width:0%;background:var(--accent)"></div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="plbl">Activity Today</div>
+      <div class="act-grid">
+        <div class="act-item"><div class="act-val" id="v-steps">0</div><div class="act-lbl">Steps</div></div>
+        <div class="act-item"><div class="act-val" id="v-amins">0m</div><div class="act-lbl">Active</div></div>
+        <div class="act-item"><div class="act-val" id="v-cal">0</div><div class="act-lbl">Cal Burn</div></div>
+        <div class="act-item"><div class="act-val" id="v-dist">0.0</div><div class="act-lbl">km</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: AI COACH -->
+  <div class="cpanel">
+    <div class="ai-orb-wrap">
+      <div class="ai-orb" id="ai-orb"></div>
+      <div>
+        <div class="ai-title" id="ai-title">HEALTHCORE AI</div>
+        <div class="ai-sub" id="ai-sub">ANALYZING YOUR VITALS</div>
+      </div>
+      <div class="ai-ts" id="ai-ts"></div>
+    </div>
+    <div class="ai-msgbox">
+      <div class="ai-headline" id="ai-headline">Initializing health analysis...</div>
+      <div class="ai-insight" id="ai-insight">Loading circadian model and biometric engine.</div>
+      <div id="action-cards" style="display:flex;flex-direction:column;gap:7px"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: RECOMMENDATIONS -->
+  <div class="rpanel">
+    <div class="rblock" id="water-block">
+      <div class="rblock-hdr">
+        <div class="rblock-title">Hydration</div>
+        <div style="font-family:var(--ff);font-size:9px;color:var(--dim)" id="water-today-lbl">0 glasses</div>
+      </div>
+      <div class="big-timer" id="water-timer" style="color:var(--accent)">--:--</div>
+      <div class="timer-sub" id="water-sub">until next drink</div>
+      <div class="prog-bar"><div class="prog-fill" id="water-prog" style="width:100%;background:var(--accent)"></div></div>
+      <button class="wlog-btn" onclick="logWater()">Log Water Now</button>
+      <div class="wdots" id="water-dots"></div>
+    </div>
+
+    <div class="rblock">
+      <div class="rblock-hdr"><div class="rblock-title">Sleep Window</div></div>
+      <div class="sleep-time" id="sleep-time">--:--</div>
+      <div class="sleep-cd" id="sleep-cd">Calculating...</div>
+      <div style="font-family:var(--ff);font-size:8px;color:var(--dim);margin-top:10px">Quality forecast</div>
+      <div class="sq-bar">
+        <div class="sq-seg"></div><div class="sq-seg"></div><div class="sq-seg"></div>
+        <div class="sq-seg"></div><div class="sq-seg"></div><div class="sq-seg"></div>
+        <div class="sq-seg"></div><div class="sq-seg"></div>
+      </div>
+    </div>
+
+    <div class="rblock">
+      <div class="rblock-hdr"><div class="rblock-title">Wakefulness</div></div>
+      <div class="wake-pct" id="wake-pct" style="color:var(--good)">--</div>
+      <div class="wake-sub-lbl" id="wake-sub">ALERTNESS INDEX</div>
+      <svg width="100%" height="48" viewBox="0 0 200 48" style="display:block;margin:8px 0 4px">
+        <path d="M10 44 A90 90 0 0 1 190 44" fill="none" stroke="var(--border)" stroke-width="7" stroke-linecap="round"/>
+        <path id="wake-arc" d="M10 44 A90 90 0 0 1 190 44" fill="none" stroke="var(--good)" stroke-width="7" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="141" style="transition:stroke-dashoffset .8s,stroke .4s"/>
+      </svg>
+      <div class="limit-warn" id="wake-warn"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bbar">
+    <button class="qbtn primary" onclick="runAnalysis()">Analyze Now</button>
+    <button class="qbtn warn-btn" onclick="logWater()">Log Water</button>
+    <button class="qbtn" onclick="simulateActivity()">Log Activity</button>
+    <button class="qbtn" onclick="resetDay()">New Day</button>
+    <div class="last-ai-lbl" id="last-ai-lbl">Last analysis: never</div>
+  </div>
+</div>
+
+<div id="notif"></div>
+
+<script>
+const S={
+  age:26,wt:68,rhr:65,maxHR:194,sleepGoal:8,
+  wakeTime:null,hr:65,hrHistory:[],spo2:98,hrv:45,stress:24,
+  steps:0,activeMinutes:0,calories:0,distance:0,
+  waterLog:[],waterGoal:120,lastAnalysis:null,ticks:0,
+  _waterReminded:false,_sleepReminded:false
+};
+
+(function(){
+  const d=new Date(Date.now()-7*3600000);
+  document.getElementById('in-wake').value=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+})();
+
+document.getElementById('beginbtn').onclick=function(){
+  S.age=+document.getElementById('in-age').value||26;
+  S.wt=+document.getElementById('in-wt').value||68;
+  S.rhr=+document.getElementById('in-rhr').value||65;
+  S.maxHR=220-S.age;
+  S.sleepGoal=+document.getElementById('in-sleep').value||8;
+  const parts=document.getElementById('in-wake').value.split(':').map(Number);
+  S.wakeTime=new Date();
+  S.wakeTime.setHours(parts[0],parts[1],0,0);
+  if(S.wakeTime>new Date()) S.wakeTime.setDate(S.wakeTime.getDate()-1);
+  S.hr=S.rhr;
+  document.getElementById('setup').classList.add('gone');
+  document.getElementById('dash').classList.add('on');
+  setInterval(simulateTick,2000);
+  setInterval(renderAll,1000);
+  setInterval(runAnalysis,5*60*1000);
+  renderAll();
+  setTimeout(runAnalysis,800);
+};
+
+function simulateTick(){
+  S.ticks++;
+  const t=S.ticks;
+  S.hr=S.rhr+5*Math.sin(t/30)+3*Math.sin(t/7)+(Math.random()-.5)*2;
+  S.hr=Math.max(S.rhr-5,Math.min(S.rhr+30,S.hr));
+  const stressBase=20+15*Math.sin(t/120)+10*Math.random();
+  S.stress=Math.max(5,Math.min(90,stressBase));
+  S.hrv=Math.max(20,Math.min(80,60-stressBase*0.4+(Math.random()-.5)*5));
+  S.spo2=Math.max(95,Math.min(100,98.5+(Math.random()-.5)));
+  const awH=getAwakeHours();
+  if(awH>0.5&&awH<14&&Math.random()<0.4){
+    S.steps+=Math.floor(Math.random()*8);
+    if(S.steps%200===0&&S.steps>0) S.activeMinutes+=1;
+  }
+  S.calories=Math.round(S.steps*0.04+S.activeMinutes*3);
+  S.distance=+(S.steps*0.0008).toFixed(1);
+  S.hrHistory.push(Math.round(S.hr));
+  if(S.hrHistory.length>300) S.hrHistory.shift();
+}
+
+function simulateActivity(){
+  S.steps+=Math.floor(Math.random()*700+400);
+  S.activeMinutes+=Math.floor(Math.random()*12+5);
+  S.hr=Math.min(S.maxHR,S.hr+15+Math.random()*10);
+  S.calories=Math.round(S.steps*0.04+S.activeMinutes*3);
+  S.distance=+(S.steps*0.0008).toFixed(1);
+  showNotif('Activity logged — '+S.steps+' steps total','');
+  runAnalysis();
+}
+
+function getAwakeHours(){
+  if(!S.wakeTime) return 0;
+  return Math.max(0,(Date.now()-S.wakeTime.getTime())/3600000);
+}
+
+function getAlertness(){
+  const awH=getAwakeHours();
+  const sleepP=Math.min(1,awH/18);
+  const h=new Date().getHours()+new Date().getMinutes()/60;
+  const C=0.5+0.25*Math.cos(2*Math.PI*(h-14)/24)+0.15*Math.cos(2*Math.PI*(h-10)/12);
+  return Math.max(0,Math.min(100,Math.round((C-sleepP*0.55+0.5)*100)));
+}
+
+function getSleepPressure(){return Math.min(1,getAwakeHours()/18)}
+
+function getOptimalSleepTime(){
+  const awH=getAwakeHours();
+  const remainH=Math.max(0.5,S.sleepGoal*1.05-awH+1);
+  const t=new Date(Date.now()+remainH*3600000);
+  t.setMinutes(Math.round(t.getMinutes()/15)*15,0,0);
+  return t;
+}
+
+function logWater(){
+  S.waterLog.push(Date.now());
+  showNotif('Water logged! Great habit.','water');
+  renderAll();
+}
+
+function getWaterStatus(){
+  if(!S.wakeTime) return{mins:0,pct:1,overdue:false,elapsed:0};
+  const now=Date.now();
+  const last=S.waterLog.length>0?S.waterLog[S.waterLog.length-1]:S.wakeTime.getTime();
+  const elapsed=(now-last)/60000;
+  const remaining=Math.max(0,S.waterGoal-elapsed);
+  return{mins:remaining,elapsed,pct:remaining/S.waterGoal,overdue:elapsed>S.waterGoal};
+}
+
+function runAnalysis(){
+  const awH=getAwakeHours();
+  const al=getAlertness();
+  const ws=getWaterStatus();
+  const hr=Math.round(S.hr);
+  const hrv=Math.round(S.hrv);
+  const stress=Math.round(S.stress);
+  const spo2=+S.spo2.toFixed(1);
+  const sleepAt=getOptimalSleepTime();
+  const sleepInH=((sleepAt-Date.now())/3600000);
+  const h=new Date().getHours();
+  const period=h<12?'morning':h<17?'afternoon':'evening';
+
+  let status='good';
+  if(ws.overdue||al<35||awH>15||stress>70||spo2<96) status='alert';
+  else if(al<55||awH>11||stress>50||ws.pct<.15) status='caution';
+
+  const headlines={
+    good:['Vitals optimal — you are performing well','All systems nominal — keep the momentum','Strong biometrics — solid '+period+' ahead','Heart rate and HRV balanced — great shape'],
+    caution:['Alertness dipping — time to recalibrate','Moderate fatigue building — take note','Stress climbing — intervention recommended','Hydration or rest needed soon'],
+    alert:['Action required — address immediately','Critical metric out of range — act now','Sleep pressure critical — prioritize rest','Overdue hydration — drink water now']
+  };
+  const headline=headlines[status][Math.floor(Math.random()*headlines[status].length)];
+
+  let insight='';
+  const hrZone=hr/S.maxHR;
+  const zoneText=hrZone>.8?'Zone 4 (high intensity)':hrZone>.7?'Zone 3 (aerobic)':hrZone>.6?'Zone 2 (fat burn)':'Zone 1 (resting)';
+  insight+='Heart rate at '+hr+' bpm ('+zoneText+'), HRV of '+hrv+'ms suggests ';
+  if(hrv>50) insight+='excellent recovery and low autonomic stress. ';
+  else if(hrv>35) insight+='adequate recovery with mild stress load. ';
+  else insight+='elevated autonomic load — your nervous system is under strain. ';
+  if(awH>0){
+    insight+='You have been awake '+awH.toFixed(1)+'h; circadian alertness is at '+al+'%';
+    if(al>70) insight+=', well within your performance window.';
+    else if(al>45) insight+=', entering the gradual decline phase.';
+    else insight+=' — your cognitive performance is significantly impaired.';
+  }
+
+  let action='',actionType='none',urgency='low';
+  if(ws.overdue){action='Drink water right now — you are '+Math.round(ws.elapsed-S.waterGoal)+' min overdue. Dehydration compounds fatigue.';actionType='water';urgency='high';}
+  else if(al<35){action='Take a 20-min power nap or full rest — alertness is critically low and cognitive tasks will suffer.';actionType='rest';urgency='high';}
+  else if(stress>65){action='Do 4-7-8 breathing now: inhale 4s, hold 7s, exhale 8s. Repeat 4 cycles to lower cortisol.';actionType='breathe';urgency='high';}
+  else if(spo2<96){action='SpO2 is low — move to fresh air and take slow deep breaths for 3-5 minutes.';actionType='breathe';urgency='high';}
+  else if(al<50){action='Take a short 5-min walk. Light movement boosts circulation and mental clarity.';actionType='move';urgency='medium';}
+  else if(ws.pct<.25){action='Drink water in '+Math.round(ws.mins)+' min — stay ahead of thirst for peak performance.';actionType='water';urgency='medium';}
+  else if(S.steps<3000&&awH>4){action='Step count is low — aim for a 10-min walk to activate your body and improve alertness.';actionType='move';urgency='medium';}
+  else{action='Maintain your current state. Everything looks balanced — keep up the good work.';actionType='none';urgency='low';}
+
+  const waterAdvice=ws.overdue?'Drink immediately — '+Math.round(ws.elapsed-S.waterGoal)+' min overdue. You have had '+S.waterLog.length+' glasses today.':'Next drink in '+Math.round(ws.mins)+' min. '+S.waterLog.length+' glasses logged. Target: 8+ glasses.';
+  const sleepAdvice=sleepInH<0?'You should already be asleep. Your '+S.sleepGoal+'h goal requires you to sleep now.':sleepInH<1?'Sleep window opens very soon — start winding down now. Target: '+sleepAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+'.':'Optimal sleep at '+sleepAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})+' (in '+sleepInH.toFixed(1)+'h). Based on '+S.sleepGoal+'h goal and '+awH.toFixed(1)+'h awake.';
+  const wakeAdvice=awH>15?'Critical: '+awH.toFixed(1)+'h awake. Beyond 16h severely impairs cognition and immunity.':awH>12?awH.toFixed(1)+'h awake — performance degrading. Plan your sleep window soon.':awH>9?awH.toFixed(1)+'h awake — within normal range but watch your alertness trend.':awH.toFixed(1)+'h awake — still in your peak performance window.';
+  const doNot=stress>60?'Avoid caffeine — your stress index is already elevated above 60.':al<40?'Avoid demanding cognitive work — save it for after rest.':awH>13?'Avoid screens and stimulating content — start sleep hygiene now.':hr/S.maxHR>.8?'Avoid more intense exercise — heart rate is already elevated.':'No specific restrictions right now. You are good.';
+
+  renderAIResult({status,headline,insight,action,actionType,urgency,waterAdvice,sleepAdvice,wakeAdvice,doNot});
+  S.lastAnalysis=new Date();
+}
+
+function renderAIResult(d){
+  const orb=document.getElementById('ai-orb');
+  const title=document.getElementById('ai-title');
+  orb.className='ai-orb '+(d.status==='good'?'':d.status==='caution'?'warn':'alert');
+  title.className='ai-title '+(d.status==='good'?'':d.status==='caution'?'warn':'alert');
+  document.getElementById('ai-sub').textContent=d.status==='good'?'ALL SYSTEMS NOMINAL':d.status==='caution'?'ATTENTION NEEDED':'ACTION REQUIRED';
+  document.getElementById('ai-headline').textContent=d.headline;
+  document.getElementById('ai-insight').textContent=d.insight;
+  if(S.lastAnalysis) document.getElementById('ai-ts').textContent='Updated '+S.lastAnalysis.toLocaleTimeString();
+  const icons={water:'💧',rest:'😌',move:'🏃',sleep:'😴',breathe:'🌬️',none:'✓'};
+  const cards=document.getElementById('action-cards');
+  cards.innerHTML='';
+  [{text:d.action,type:d.actionType,urg:d.urgency},{text:d.waterAdvice,type:'water',urg:'medium'},{text:d.sleepAdvice,type:'sleep',urg:'low'},{text:'Avoid: '+d.doNot,type:'none',urg:'low'},{text:d.wakeAdvice,type:'none',urg:'low'}].filter(x=>x.text).forEach(function(item){
+    var bg=item.type==='water'?'rgba(79,209,197,.1)':item.type==='sleep'?'rgba(183,148,244,.1)':item.type==='breathe'?'rgba(104,211,145,.1)':'rgba(255,255,255,.04)';
+    var badge=item.urg==='high'?'badge-h':item.urg==='medium'?'badge-m':'badge-l';
+    var c=document.createElement('div');
+    c.className='acard';
+    c.innerHTML='<div class="acard-icon" style="background:'+bg+'">'+(icons[item.type]||'●')+'</div><div class="acard-text">'+item.text+'</div><div class="acard-badge '+badge+'">'+item.urg+'</div>';
+    if(item.type==='water') c.onclick=function(){logWater()};
+    cards.appendChild(c);
+  });
+}
+
+function renderAll(){
+  var now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var awH=getAwakeHours();
+  var ah=Math.floor(awH),am=Math.floor((awH-ah)*60);
+  document.getElementById('awake-val').innerHTML='Awake: <span>'+ah+'h '+am+'m</span>';
+
+  var hr=Math.round(S.hr);
+  var pct=Math.max(0,Math.min(1,(hr-40)/(S.maxHR-40)));
+  var maxArc=270/360*2*Math.PI*58;
+  document.getElementById('gauge-fill').setAttribute('stroke-dashoffset',String(maxArc*(1-pct)));
+  var zc=hr/S.maxHR>.9?'var(--danger)':hr/S.maxHR>.8?'var(--warn)':hr/S.maxHR>.6?'var(--accent)':'var(--good)';
+  var zn=hr/S.maxHR>.9?'ZONE 5':hr/S.maxHR>.8?'ZONE 4':hr/S.maxHR>.7?'ZONE 3':hr/S.maxHR>.6?'ZONE 2':'ZONE 1';
+  document.getElementById('gauge-fill').setAttribute('stroke',zc);
+  document.getElementById('gauge-num').textContent=hr;
+  document.getElementById('gauge-num').setAttribute('fill',zc);
+  document.getElementById('gauge-zone').textContent=zn;
+
+  var spo2=+S.spo2.toFixed(1);
+  document.getElementById('v-spo2').textContent=spo2+'%';
+  document.getElementById('b-spo2').style.cssText='width:'+spo2+'%;background:'+(spo2<95?'var(--danger)':spo2<97?'var(--warn)':'var(--good)');
+  var hrv=Math.round(S.hrv);
+  document.getElementById('v-hrv').textContent=hrv;
+  document.getElementById('b-hrv').style.cssText='width:'+Math.min(100,hrv*1.2)+'%;background:'+(hrv<30?'var(--danger)':hrv<40?'var(--warn)':'var(--accent)');
+  var stress=Math.round(S.stress);
+  document.getElementById('v-stress').textContent=stress;
+  document.getElementById('b-stress').style.cssText='width:'+stress+'%;background:'+(stress>70?'var(--danger)':stress>45?'var(--warn)':'var(--good)');
+  var al=getAlertness();
+  document.getElementById('v-alert').textContent=al;
+  document.getElementById('b-alert').style.cssText='width:'+al+'%;background:'+(al<35?'var(--danger)':al<55?'var(--warn)':al<75?'var(--accent)':'var(--good)');
+
+  document.getElementById('v-steps').textContent=S.steps.toLocaleString();
+  document.getElementById('v-amins').textContent=S.activeMinutes+'m';
+  document.getElementById('v-cal').textContent=S.calories;
+  document.getElementById('v-dist').textContent=S.distance;
+
+  var ws=getWaterStatus();
+  var wb=document.getElementById('water-block');
+  wb.className='rblock'+(ws.overdue?' overdue':ws.pct<.25?' urgent':'');
+  var wt=document.getElementById('water-timer');
+  if(ws.overdue){wt.textContent='DRINK NOW';wt.style.color='var(--warn)';document.getElementById('water-sub').textContent='Overdue by '+Math.round(ws.elapsed-S.waterGoal)+' min';}
+  else{var rm=Math.floor(ws.mins),rs=Math.floor((ws.mins-rm)*60);wt.textContent=String(rm).padStart(2,'0')+':'+String(rs).padStart(2,'0');wt.style.color=ws.pct<.15?'var(--warn)':'var(--accent)';document.getElementById('water-sub').textContent='until next drink';}
+  document.getElementById('water-prog').style.cssText='width:'+(ws.pct*100)+'%;background:'+(ws.overdue?'var(--warn)':'var(--accent)');
+  document.getElementById('water-today-lbl').textContent=S.waterLog.length+' glasses';
+  document.getElementById('water-dots').textContent='💧'.repeat(Math.min(S.waterLog.length,8))+'○'.repeat(Math.max(0,8-S.waterLog.length));
+
+  var sleepAt=getOptimalSleepTime();
+  var sinMs=sleepAt-now;
+  document.getElementById('sleep-time').textContent=sleepAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  if(sinMs<0){document.getElementById('sleep-cd').textContent='Should be sleeping now';document.getElementById('sleep-cd').style.color='var(--danger)';}
+  else{var sih=Math.floor(sinMs/3600000),sim=Math.floor((sinMs%3600000)/60000);document.getElementById('sleep-cd').textContent='in '+sih+'h '+sim+'m';document.getElementById('sleep-cd').style.color='var(--dim)';}
+  var sp2=getSleepPressure();
+  document.querySelectorAll('.sq-seg').forEach(function(s,i){var q=1-sp2;s.style.background=i/8<q?'var(--good)':i/8<q+.15?'var(--warn)':'var(--border)';});
+
+  var wp=document.getElementById('wake-pct');
+  wp.textContent=al+'%';
+  wp.style.color=al<35?'var(--danger)':al<55?'var(--warn)':al<75?'var(--accent)':'var(--good)';
+  document.getElementById('wake-sub').textContent=al>75?'SHARP & FOCUSED':al>55?'PERFORMING WELL':al>35?'GETTING TIRED':'NEEDS REST SOON';
+  var arcEl=document.getElementById('wake-arc');
+  arcEl.setAttribute('stroke-dashoffset',String(283*(1-al/100)));
+  arcEl.setAttribute('stroke',al<35?'var(--danger)':al<55?'var(--warn)':al<75?'var(--accent)':'var(--good)');
+  document.getElementById('wake-warn').textContent=awH>14?'Warning: '+awH.toFixed(1)+'h awake — cognitive decline accelerating.':awH>11?awH.toFixed(1)+'h awake — start planning wind-down soon.':'';
+
+  if(S.lastAnalysis){var ago=Math.round((Date.now()-S.lastAnalysis)/60000);document.getElementById('last-ai-lbl').textContent='Last analysis: '+(ago===0?'just now':ago+'m ago');}
+  if(ws.overdue&&!S._waterReminded){S._waterReminded=true;showNotif('Time to drink water — you are overdue!','water');setTimeout(function(){S._waterReminded=false},5*60000);}
+  if(sinMs>0&&sinMs<30*60000&&!S._sleepReminded){S._sleepReminded=true;showNotif('Sleep window in 30 min — start winding down.','warn-notif');}
+}
+
+function resetDay(){
+  S.waterLog=[];S.steps=0;S.activeMinutes=0;S.calories=0;S.distance=0;S.ticks=0;
+  S._waterReminded=false;S._sleepReminded=false;
+  var d=new Date();d.setHours(d.getHours()-1,0,0,0);S.wakeTime=d;
+  document.getElementById('ai-headline').textContent='New day initialized.';
+  document.getElementById('ai-insight').textContent='Running fresh analysis...';
+  document.getElementById('action-cards').innerHTML='';
+  showNotif('Day reset — good morning!','water');
+  setTimeout(runAnalysis,500);
+}
+
+function showNotif(msg,cls){
+  var c=document.getElementById('notif');
+  var n=document.createElement('div');
+  n.className='notif '+(cls||'');
+  n.textContent=msg;
+  c.appendChild(n);
+  setTimeout(function(){n.style.opacity='0';setTimeout(function(){n.remove()},300)},4000);
+}
+</script>
+</body>
+</html>
